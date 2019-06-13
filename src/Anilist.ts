@@ -1,6 +1,5 @@
 import 'isomorphic-fetch'
 import {Message} from "discord.js";
-import * as Discord from 'discord.js';
 
 export class Anilist {
     private static readonly anilistUrl = "https://graphql.anilist.co";
@@ -29,7 +28,7 @@ export class Anilist {
             }
     }`;
 
-    static getAnimeByUser(userId: number, message: Message) {
+    static async getAnimeByUser(userId: number): Promise<string> {
         let variables = {
             page: 1,
             perPage: 10,
@@ -37,36 +36,35 @@ export class Anilist {
             sort: "SCORE_DESC"
         };
 
-        this.callAnilistApi(this.query, variables)
-            .then(res => res.json())
-            .then(json => {
-                let count: number = 1;
-                let list: string = "";
-                json.data.Page.mediaList.forEach((show: any) => {
-                    list = list.concat(count++ + ". " + show.media.title.userPreferred + " - " + show.score + "/10\n");
-                });
-                message.channel.send(new Discord.RichEmbed().setDescription(list));
-            })
-            .catch(error => {
-                console.log(error)
-            });
+        let res = await this.callAnilistApi(this.query, variables);
+
+        let json = await res.json();
+
+        let mediaList = json.data.Page.mediaList;
+
+        let list: string = "";
+        for (let i = 1; i <= mediaList.length; i++) {
+            list = list.concat(i + ". " + mediaList[i - 1].media.title.userPreferred + " - " + mediaList[i - 1].score + "/10\n");
+        }
+        return list;
     }
 
-    static getUserId(userName: string): Promise<number> {
+    static async getUserId(userName: string): Promise<number> {
         let variables = {
             userName: userName
         };
-        return this.callAnilistApi(this.userQuery, variables)
-            .then(res => {
-                if (res.status === 404) {
-                    throw new Error("User not found " + userName);
-                }
-                return res.json();
-            })
-            .then(json => json.data.User.id);
+
+        let res = await this.callAnilistApi(this.userQuery, variables);
+
+        if (res.status === 404) {
+            throw new Error("User not found " + userName);
+        }
+
+        let json = await res.json();
+        return json.data.User.id;
     }
 
-    private static callAnilistApi(query: string, variables: any): Promise<any> {
+    private static async callAnilistApi(query: string, variables: any) {
         let options = {
             method: 'POST',
             headers: {
@@ -79,6 +77,6 @@ export class Anilist {
             })
         };
 
-        return fetch(this.anilistUrl, options);
+        return await fetch(this.anilistUrl, options);
     }
 }

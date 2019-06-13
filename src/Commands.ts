@@ -1,4 +1,5 @@
 import {Anilist} from "./Anilist";
+import * as Discord from "discord.js";
 import {Message} from "discord.js";
 import {Orm} from "./Orm";
 
@@ -15,19 +16,19 @@ export class Commands {
                 if (this.userRegex.test(params[0])) {
                     let match = this.userRegex.exec(params[0]);
                     // @ts-ignore
-                    let anilistId: number = await Orm.searchAnilistId(match[1]);
-                    Anilist.getAnimeByUser(anilistId, receivedMessage);
+                    let anilistId: number = await Orm.searchAnilistId(match[1]); //userRegex test will do null check
+                    let list = await Anilist.getAnimeByUser(anilistId);
+                    receivedMessage.channel.send(new Discord.RichEmbed().setDescription(list));
                 }
                 break;
             case "login":
-                Anilist.getUserId(params[0])
-                    .then(userId => {
-                        Orm.sync(receivedMessage.author.id, userId);
-                    })
-                    .then(_ => {
-                        receivedMessage.channel.send("<@" + receivedMessage.author.id + "> has linked to Anilist profile " + params[0]);
-                    })
-                    .catch(error => console.log(error));
+                try {
+                    let anilistId: number = await Anilist.getUserId(params[0]);
+                    await Orm.sync(receivedMessage.author.id, anilistId);
+                    receivedMessage.channel.send("<@" + receivedMessage.author.id + "> has linked to Anilist profile " + params[0]);
+                } catch (e) {
+                    receivedMessage.channel.send("Unable to sync account to " + params[0]);
+                }
                 break;
             default:
                 break;
