@@ -1,7 +1,12 @@
 #### Run application
+*Prerequisites*
+
+1. Set BOT_SECRET_TOKEN for bot to connect to Discord
+1. Setup database, create ormconfig.json with database info and create table with ddl provided
+
+
 1. `npm start`
 
-*Note*: Set BOT_SECRET_TOKEN for bot to connect to Discord
 
 #### Future plans
 
