@@ -17,6 +17,7 @@ export class Anilist {
                     coverImage {
                       medium
                     }
+                    siteUrl
                   }
                 }
               }
@@ -28,10 +29,32 @@ export class Anilist {
             }
     }`;
 
-    static async getAnimeByUser(userId: number): Promise<string> {
+    private static readonly profileQuery = `query ($userId: Int, $page: Int, $perPage: Int) {
+            User (id: $userId) {
+                name
+                about
+                avatar {
+                   medium 
+                }
+                favourites {
+                    anime (page: $page, perPage: $perPage) {
+                        nodes {
+                            title {
+                              userPreferred
+                            }
+                            coverImage {
+                              medium
+                            }
+                        }
+                    }
+                }
+            }
+    }`;
+
+    static async getAnimeByUser(userId: number, number: number): Promise<Array<any>> {
         let variables = {
             page: 1,
-            perPage: 10,
+            perPage: number,
             userId: userId,
             sort: "SCORE_DESC"
         };
@@ -40,13 +63,7 @@ export class Anilist {
 
         let json = await res.json();
 
-        let mediaList = json.data.Page.mediaList;
-
-        let list: string = "";
-        for (let i = 1; i <= mediaList.length; i++) {
-            list = list.concat(i + ". " + mediaList[i - 1].media.title.userPreferred + " - " + mediaList[i - 1].score + "/10\n");
-        }
-        return list;
+        return json.data.Page.mediaList;
     }
 
     static async getUserId(userName: string): Promise<number> {
@@ -62,6 +79,17 @@ export class Anilist {
 
         let json = await res.json();
         return json.data.User.id;
+    }
+
+    static async getProfile(anilistId: number) {
+        let variables = {
+            userId: anilistId,
+            page: 1,
+            perPage: 1
+        };
+
+        let res = await this.callAnilistApi(this.profileQuery, variables);
+        return await res.json();
     }
 
     private static async callAnilistApi(query: string, variables: any) {

@@ -17,8 +17,13 @@ export class Commands {
                     let match = this.userRegex.exec(params[0]);
                     // @ts-ignore
                     let anilistId: number = await Orm.searchAnilistId(match[1]); //userRegex test will do null check
-                    let list = await Anilist.getAnimeByUser(anilistId);
-                    receivedMessage.channel.send(new Discord.RichEmbed().setDescription(list));
+                    let animeList = await Anilist.getAnimeByUser(anilistId, 10);
+                    let formattedList: string = "<@" + receivedMessage.author.id + ">'s Top 10\n";
+                    for (let i = 1; i <= animeList.length; i++) {
+                        formattedList = formattedList.concat(i + ". [" + animeList[i - 1].media.title.userPreferred + "](" + animeList[i - 1].media.siteUrl + ") - " + animeList[i - 1].score + "/10\n");
+                    }
+                    receivedMessage.channel.send(new Discord.RichEmbed()
+                        .setDescription(formattedList));
                 }
                 break;
             case "login":
@@ -28,6 +33,28 @@ export class Commands {
                     receivedMessage.channel.send("<@" + receivedMessage.author.id + "> has linked to Anilist profile " + params[0]);
                 } catch (e) {
                     receivedMessage.channel.send("Unable to sync account to " + params[0]);
+                }
+                break;
+            case "profile":
+                if (this.userRegex.test(params[0])) {
+                    let match = this.userRegex.exec(params[0]);
+                    // @ts-ignore
+                    let anilistId: number = await Orm.searchAnilistId(match[1]); //userRegex test will do null check
+                    let profile = await Anilist.getProfile(anilistId);
+                    let userInfo = profile.data.User;
+                    let embed = new Discord.RichEmbed()
+                        .setTitle(userInfo.name)
+                        .setThumbnail(userInfo.avatar.medium)
+                        // @ts-ignore
+                        .addField("Discord", "<@" + match[1] + ">", true);
+                    if (userInfo.about != null) {
+                        embed.setDescription(userInfo.about);
+                    }
+                    if (userInfo.favourites.anime.nodes.length == 1) {
+                        embed.addField("Favorite Anime", userInfo.favourites.anime.nodes[0].title.userPreferred);
+                        embed.setImage(userInfo.favourites.anime.nodes[0].coverImage.medium);
+                    }
+                    receivedMessage.channel.send(embed);
                 }
                 break;
             default:
